@@ -110,9 +110,15 @@ class Madical_Order(models.Model):
     shipping_address = models.ForeignKey(Medical_Address, on_delete=models.CASCADE)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2) #2399.23
     payment_mode = models.CharField(max_length=100, choices=(('cod', 'Cash On Delevery'), ('online', 'Online Payment')), default='cod')
-    payment_status = models.CharField(max_length=100, choices=(('pending','Pending'), ('processing','Processing'), ('completed', 'Completed'), ('faild', 'Faild')))
+    payment_status = models.CharField(max_length=100, choices=(('pending','Pending'), ('processing','Processing'), ('completed', 'Completed'), ('faild', 'Faild'), ('cancle', 'Cancle')))
     tracking_no = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
+    razorpay_order_id = models.CharField(max_length=250, null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=250, null=True, blank=True)
+    razorpay_signeture = models.CharField(max_length=250, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.user} -> {self.order_id}"
     
 
 
@@ -126,3 +132,6 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Medical_Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
     
+    
+    def __str__(self):
+        return f"{self.order.order_id} -> {self.product.product_name}"

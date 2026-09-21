@@ -30,10 +30,10 @@
 
         <!-- Your CSS -->
         <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-
         <link href="{% static 'css/contact.css' %}" rel="stylesheet">
-        
         <link href="{% static 'css/address.css' %}" rel="stylesheet">
+        <link href="{% static 'css/order_success.css' %}" rel="stylesheet">
+        <link href="{% static 'css/orders.css' %}" rel="stylesheet">
     </head>
 <body>
 
@@ -57,7 +57,7 @@
             <!-- NAVIGATION -->
             <div class="main-menu">
                 <a href="{% url 'home' %}" class="menu-link active">
-                   <i class="fa-solid fa-house"></i>Home2</a>
+                   <i class="fa-solid fa-house"></i>Home</a>
                 <div class="shop-dropdown">
                     <a href="#" class="menu-link">
                         <i class="fa-solid fa-shop"></i>Shop<i class="fa-solid fa-chevron-down arrow"></i>
@@ -194,7 +194,7 @@
                                 </div>
                             </div>
                             <hr>
-                            <a href="#">
+                            <a href="{% url "orders" %}">
                                 <i class="fa-solid fa-box"></i>
                                 All Orders
                             </a>

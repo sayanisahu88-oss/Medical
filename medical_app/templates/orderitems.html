@@ -1,0 +1,186 @@
+{% extends "app.html" %}
+{% load static %}
+
+{% block title %}Order Items{% endblock title %}
+
+{% block content %}
+<section class="order-items-page">
+
+    <div class="order-items-container">
+
+        <!-- Header -->
+        <div class="order-items-header">
+
+            <div>
+                <span class="order-badge">
+                    <i class="fa-solid fa-box-open"></i>
+                    ORDER DETAILS
+                </span>
+
+                <h1>
+                    Order <span>#{{ orderid }}</span>
+                </h1>
+
+                <p>Here are all the products included in your order.</p>
+            </div>
+
+            <div class="order-header-icon">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+
+        </div>
+
+
+        <!-- Messages -->
+        {% if messages %}
+
+            {% for message in messages %}
+
+                <div class="order-alert {{ message.tags }}">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <strong>
+                        {{ message }}
+                    </strong>
+
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+
+        <!-- Order Items Card -->
+        <div class="order-items-card">
+
+            {% if orderitems %}
+
+                <div class="table-wrapper">
+
+                    <table class="order-items-table">
+
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Product Name</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for item in orderitems %}
+
+                                <tr>
+
+                                    <!-- Product Image -->
+                                    <td>
+
+                                        <div class="product-image-box">
+
+                                            {% if item.product.product_image %}
+
+                                                <img
+                                                    src="{{ item.product.product_image.url }}"
+                                                    alt="{{ item.product.product_name }}"
+                                                >
+
+                                            {% else %}
+
+                                                <div class="no-image">
+                                                    <i class="fa-solid fa-image"></i>
+                                                </div>
+
+                                            {% endif %}
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Product Name -->
+                                    <td>
+
+                                        <div class="product-name">
+
+                                            <i class="fa-solid fa-capsules"></i>
+
+                                            <span>
+                                                {{ item.product.product_name }}
+                                            </span>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Quantity -->
+                                    <td>
+
+                                        <span class="quantity-badge">
+
+                                            <i class="fa-solid fa-box"></i>
+
+                                            {{ item.quantity }}
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <!-- Empty -->
+                <div class="empty-order-items">
+
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+
+                    <h2>No Items Found</h2>
+
+                    <p>
+                        No products were found for this order.
+                    </p>
+
+                    <a href="{% url 'orders' %}" class="back-btn">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back to Orders
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- Back Button -->
+        {% if orderitems %}
+
+            <div class="back-orders">
+
+                <a href="{% url 'orders' %}" class="back-btn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back to Orders
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+{% endblock content %}
