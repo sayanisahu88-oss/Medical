@@ -124,3 +124,6 @@ MESSAGE_TAGS = {
     messages.WARNING: "alert-warning",
     messages.ERROR: "alert-danger",
 }
+
+RAZORPAY_KEY_ID = 'rzp_test_TXZmC54IbH8ksa'
+RAZORPAY_KEY_SECRET = 'RnMUpOmlDNLJe2o2BQkTveMO'

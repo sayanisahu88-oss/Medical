@@ -6,6 +6,13 @@ urlpatterns = [
     path('register', user_register, name="register"),
     path('logout', user_logout, name="logout"),
     
+    # MANAGE ADDRESS
+    path('manage-address/', manage_address, name='manage_address'),
+    path('add-address/', add_address, name='add_address'),
+    path('edit-address/<int:address_id>/', edit_address, name='edit_address'),
+    path('delete-address/<int:address_id>/', delete_address, name='delete_address'),
+    path('default-address/<int:address_id>/', default_address, name='default_address'),
+    
     #Other router
     path('', home_func, name="home"),
     path('contact', contact_func, name="contact"),
@@ -19,12 +26,9 @@ urlpatterns = [
     path('add-to-cart', add_items_to_cart, name="add_items_to_cart"),
     path('checkout', checkout, name="checkout"), 
     path('process-order', process_order, name="process_order"),
-     # =========================
-    # MANAGE ADDRESS
-    # =========================
-    path('manage-address/', manage_address, name='manage_address'),
-    path('add-address/', add_address, name='add_address'),
-    path('edit-address/<int:address_id>/', edit_address, name='edit_address'),
-    path('delete-address/<int:address_id>/', delete_address, name='delete_address'),
-    path('default-address/<int:address_id>/', default_address, name='default_address'),
+    path('orders', user_orders, name="orders"),
+    path('order/<str:orderid>', get_order_items, name="get_order_items"),
+    path('cancel-order/<str:orderid>/', cancel_order, name="cancel_order"),
+    path('payment-callback', payment_callback, name ="payment_callback"),
+    
 ]

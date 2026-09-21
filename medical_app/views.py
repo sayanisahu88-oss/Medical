@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import Medical_Product, Medical_Favourite, Medical_Cart, Medical_Category, Medical_Address
+from .models import OrderItem, Madical_Order
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
@@ -8,6 +9,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth. decorators import login_required
 from .templatetags.helper import get_favourites_count
 from django.shortcuts import render, get_object_or_404
+import random
+import razorpay
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+
+#setting a razorpay client globally
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 # Create your views here.
 
@@ -187,9 +195,7 @@ def add_items_to_cart(request):
     
 def manage_address(request):
 
-    addresses = Medical_Address.objects.filter(
-        user=request.user
-    ).order_by('-is_default', '-created_at')
+    addresses = Medical_Address.objects.filter(user=request.user).order_by('-is_default', '-created_at')
 
     context = {
         'addresses': addresses
@@ -382,4 +388,169 @@ def checkout(request):
 
 
 def process_order(request):
-    return HttpResponse("Order processed")
+    user = request.user
+    if request.method == "POST":
+        if 'address' not in request.POST:
+            messages.error(request, "Address not selected !")
+            return redirect('checkout')
+        
+        if 'payment_mode' not in request.POST:
+            messages.error(request, "Payment Method not selected !")
+            return redirect('checkout')
+                
+        address_id = request.POST['address']
+        payment_mode = request.POST['payment_mode']
+        
+        address = Medical_Address.objects.filter(id=address_id).first()
+        cart_items = Medical_Cart.objects.filter(user = user)
+        
+        if not cart_items.exists():
+            messages.error(request, "There are no Products inside your cart !")
+            return redirect('checkout')
+        
+        total_amount = sum(items.product.product_price * items.quantity for items in cart_items )
+        tracking_no = 'MED' + str(random.randint(11111, 99999))
+        
+        if payment_mode == 'cod':
+            try:
+                #creating new Order
+                new_order = Madical_Order.objects.create(
+                    user = user,
+                    shipping_address = address,
+                    total_amount = total_amount,
+                    payment_mode = 'cod',
+                    payment_status = 'Pending',
+                    tracking_no = tracking_no,
+                )
+                
+                #  Move data from cart items to Orderitems
+                for items in cart_items:
+                    OrderItem.objects.create(
+                        order = new_order,
+                        product = items.product,
+                        quantity = items.quantity
+                    )
+                cart_items.delete()
+                context = {
+                    'orderid' : new_order.order_id,
+                    'date' : new_order.created_at,
+                    'total' : new_order.total_amount
+                }
+                return render(request, 'success.html', context)
+            
+            except Exception as e:
+                messages.warning(request, "Order not Generate Due to : ", e)
+                return redirect('checkout')
+            
+        elif payment_mode == 'upi':
+            razorpay_amount = int(total_amount*100)
+            razorpay_order = client.order.create({
+                'amount' : razorpay_amount,
+                'currency' : 'INR',
+                'payment_capture' : 1
+            })
+            new_order = Madical_Order.objects.create(
+                user = request.user,
+                shipping_address = address,
+                total_amount = total_amount,
+                payment_mode = 'online',
+                payment_status = 'completed',
+                tracking_no = tracking_no,
+                razorpay_order_id = razorpay_order['id']
+            )
+            
+            for items in cart_items:
+                OrderItem.objects.create(
+                    order = new_order,
+                    product = items.product,
+                    quantity = items.quantity
+                )
+            cart_items.delete()
+            
+            context = {
+                'order': new_order,
+                'razorpay_order_id' : razorpay_order ['id'],
+                'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+                'amount': razorpay_amount,
+                'currency':'INR',
+                'callback_url': request.build_absolute_uri('/payment-callback/')
+            }
+            return render(request, 'razorpay_checkout.html', context)
+            
+            
+        else:
+            pass
+        
+    return HttpResponse("Order Processed")
+
+def user_orders(request):
+    user = request.user
+    orders = Madical_Order.objects.filter(user=user)
+    context ={
+        'orders' : orders
+        
+    }
+    return render(request,"orders.html", context)
+
+def get_order_items(request, orderid):
+    order = Madical_Order.objects.filter(order_id = orderid).first()
+    orderitems = OrderItem.objects.filter(order = order)
+    
+    context = {
+        'orderitems' : orderitems,
+        'orderid' : orderid
+    }
+    return render(request, 'orderitems.html', context)
+    
+
+def cancel_order(request, orderid):
+    user = request.user
+    order = Madical_Order.objects.filter(order_id=orderid).first()
+    order.delete()
+    messages.success(request,f"Order #{orderid} cancelled and deleted successfully.")
+    return redirect('orders')
+
+
+
+@csrf_exempt
+def payment_callback(request):
+    if request.method == "POST":
+        razorpay_payment_id = request.POST.get('razorpay_payment_id', '')
+        razorpay_order_id = request.POST.get('razorpay_order_id', '')
+        razorpay_signature = request.POST.get('razorpay_signature', '')
+
+        order = Madical_Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        if not order:
+            messages.error(request, "Order not found.")
+            return redirect('checkout')
+
+        # Verify signature with Razorpay SDK
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+
+        try:
+            client.utility.verify_payment_signature(params_dict)
+
+            # Signature matches - complete the order
+            order.payment_status = 'completed'
+            order.razorpay_payment_id = razorpay_payment_id
+            order.razorpay_signeture = razorpay_signature
+            order.save()
+
+            # Empty user's cart
+            Medical_Cart.objects.filter(user=order.user).delete()
+
+            messages.success(request, f"Payment successful! Your order has been placed. {razorpay_signature}")
+            return redirect('home')
+
+        except razorpay.errors.SignatureVerificationError:
+            order.payment_status = 'Failed'
+            order.save()
+            messages.error(request, "Payment verification failed. Please try again.")
+            return redirect('checkout')
+
+
+    return redirect('checkout')
